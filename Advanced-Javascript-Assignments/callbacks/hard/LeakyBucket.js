@@ -12,11 +12,44 @@
 // 4. Fairness must be preserved (FIFO execution)
 
 class LeakyBucket {
-  constructor(capacity, leakRateMs) {}
+  constructor(capacity, leakRateMs) {
+    this.capacity = capacity;
+    this.leakRateMs = leakRateMs;
+    this.processing = false;
+    this.queue = [];
+    this.currentSize = 0;
+  }
 
-  add(task, onComplete) {}
+  add(task, onComplete) {
+    if(this.currentSize >= this.capacity){
+      onComplete(new Error("Rate Limit Exceeded"));
+      return;
+    }
+    this.queue.push({task,onComplete});
+    this.currentSize++;
 
-  _process() {}
+    if(!this.processing){
+      this._process();
+    }
+  }
+
+  _process() {
+    if(this.queue.length === 0){
+      this.processing = false;
+      return;
+    }
+    this.processing = true;
+    const {task,onComplete} = this.queue.shift();
+
+    task((err,result) => {
+      onComplete(err,result);
+      this.currentSize--;
+
+      setTimeout(() => {
+        this._process();
+      },this.leakRateMs);
+    });
+  }
 }
 
 module.exports = LeakyBucket;
