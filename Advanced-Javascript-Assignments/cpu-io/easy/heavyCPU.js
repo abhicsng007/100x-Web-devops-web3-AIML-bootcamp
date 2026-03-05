@@ -8,6 +8,14 @@
 // (such as timers or async callbacks) from running until it completes.
 
 
-function heavyCPU(iterations) {}
+function heavyCPU(iterations) {
+    let result = 0;
+
+    for(let i =0;i<iterations;i++){
+        result += i;
+    }
+
+    return result;
+}
 
 module.exports = heavyCPU;
