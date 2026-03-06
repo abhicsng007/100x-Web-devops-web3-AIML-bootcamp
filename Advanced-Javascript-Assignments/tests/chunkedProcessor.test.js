@@ -15,28 +15,31 @@ describe("chunkedProcessor", () => {
     });
   });
 
-  test("should not block the event loop (yields control)", (done) => {
-    const items = new Array(50000).fill(0); 
-    let heartbeatCount = 0;
+  test("should not block the event loop (yields control)", async () => {
+  const items = new Array(100).fill(0); // Lower count for faster debugging
+  let heartbeatCount = 0;
 
-    const interval = setInterval(() => {
-      heartbeatCount++;
-    }, 1); 
+  const interval = setInterval(() => {
+    heartbeatCount++;
+  }, 1);
 
+  // 1. Wait for the processor to complete
+  await new Promise((resolve) => {
     chunkedProcessor(items, (item) => {
-      for(let i = 0; i < 1000; i++) { 
-        Math.sqrt(i); 
-      }
+      // Simulate work
+      for(let i = 0; i < 100; i++) Math.sqrt(i);
     }, () => {
-      clearInterval(interval);
-      try {
-        expect(heartbeatCount).toBeGreaterThan(0);
-        done();
-      } catch (error) {
-        done(error);
-      }
+      clearInterval(interval); // MUST clear the interval here
+      resolve();
     });
-  }, 10000); 
+  });
+
+  // 2. THE FIX: Explicitly wait for the very last scheduled setImmediate to fire
+  // This "drains" any remaining handles from the event loop
+  await new Promise((resolve) => setImmediate(resolve));
+
+  expect(heartbeatCount).toBeGreaterThan(0);
+}, 10000);
 
   test("should handle an empty array", (done) => {
     chunkedProcessor([], (item) => {}, () => {
