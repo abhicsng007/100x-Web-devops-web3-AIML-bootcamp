@@ -4,7 +4,15 @@
 // The function should accept an iterable of values that may include Promises or plain values. 
 // It must settle as soon as the first input settles, resolving or rejecting accordingly. 
 // Using Promise.resolve ensures non-promise values are handled correctly.
-function promiseRace(promises) {}
+function promiseRace(promises) {
+    return new Promise((resolve,reject) => {
+        for(const p of promises){
+            Promise.resolve(p)
+                    .then(resolve)
+                    .catch(reject);
+        }
+    })
+}
 
 module.exports = promiseRace;
 
