@@ -8,6 +8,14 @@
 //
 // It must resolve with an object:
 // { winner: <key>, value: <resolved value> }
-async function raceWithMetadata(promiseMap) { }
+async function raceWithMetadata(promiseMap) { 
+    return new Promise((resolve,reject) => {
+        for(const [key,promise] of Object.entries(promiseMap)){
+            Promise.resolve(promise)
+                   .then(value => resolve({winner:key , value}))
+                   .catch(reject)
+        }
+    })
+}
 
 module.exports = raceWithMetadata;

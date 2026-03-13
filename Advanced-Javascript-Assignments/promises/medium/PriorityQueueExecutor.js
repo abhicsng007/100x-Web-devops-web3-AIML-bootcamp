@@ -6,9 +6,27 @@
 // The executor must support push(task, priority), where higher priority runs first.
 // If tasks are waiting, newly added high-priority tasks should jump ahead of lower-priority ones.
 class PriorityQueueExecutor {
-  constructor() { }
-  push(task, priority = 0) { }
-  async _run() { }
+  constructor() { 
+    this.queue = [];
+    this.running = false;
+  }
+  push(task, priority = 0) { 
+    this.queue.push({task,priority});
+    this.queue.sort((a,b) => b.priority - a.priority);
+
+    if(!this.running){
+      this._run();
+    }
+  }
+  async _run() {
+    this.running = true;
+
+    while(this.queue.length > 0){
+      const {task} = this.queue.shift();
+      await task();
+    }
+    this.running = false;
+   }
 }
 
 module.exports = PriorityQueueExecutor;
