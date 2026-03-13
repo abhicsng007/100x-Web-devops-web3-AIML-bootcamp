@@ -11,6 +11,38 @@
 // 3. If maxWaitMs passes before reaching maxBatchSize, call processorFn with the partial batch
 // 4. After processing, reset the buffer and timer so no items remain stuck
 
-function createBatcher(processorFn, maxBatchSize, maxWaitMs) { }
+function createBatcher(processorFn, maxBatchSize, maxWaitMs) { 
+    const buffer = [];
+    let timer = null;
+
+    function flush(){
+        if(buffer.length === 0) return;
+
+        const batch = buffer;
+        buffer = [];
+
+        if(timer){
+            setTimeout(timer);
+            timer = null;
+        }
+
+        processorFn(batch);
+    }
+
+    function add(item){
+        buffer.push(item);
+        if(buffer.length >= maxBatchSize){
+            flush();
+            return;
+        }
+
+        if(!timer){
+            timer = setTimeout(() => {
+                flush();
+            },maxWaitMs);
+        }
+    }
+    return add;
+}
 
 module.exports = createBatcher;

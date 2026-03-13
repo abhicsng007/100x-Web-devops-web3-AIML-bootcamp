@@ -7,6 +7,24 @@
 // This problem tests deduplication and state synchronization.
 //
 
-function createIdempotentExecutor() {}
+function createIdempotentExecutor() {
+    const inflight = new Map();
+
+    return function execute(key,asyncTask){
+        if(inflight.has(key)){
+            return inflight.get(key);
+        }
+
+        const promise = Promise.resolve()
+                                .then(() => asyncTask())
+                                .finally(() => {
+                                    inflight.delete(key);
+                                })
+
+        inflight.set(key,promise);
+
+        return promise;
+    }
+}
 
 module.exports = createIdempotentExecutor;

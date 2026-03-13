@@ -11,6 +11,25 @@
 // 2. Preserve nested structures
 // 3. Detect and handle circular references using a WeakMap
 //
-function deepClone(value, map = new WeakMap()) { }
+function deepClone(value, map = new WeakMap()) {
+    if(value === null || typeof value != "object"){
+        return value;
+    }
+
+    if(map.has(value)){
+        return map.get(value);
+    }
+
+    const clone = Array.isArray(value) ? [] : {} ;
+    map.set(value,clone);
+
+    for(const key in value){
+        if(value.hasOwnProperty(key)){
+            clone[key] = deepClone(value[key],map);
+        }
+    }
+
+    return clone;
+ }
 
 module.exports = deepClone;
