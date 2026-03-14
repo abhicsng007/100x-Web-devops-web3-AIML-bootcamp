@@ -4,6 +4,20 @@
 // When multiple calls are made in quick succession, only the result of the most recent call should be used. 
 // If an earlier request resolves after a later one, its result must be ignored
 
-function switchMap(apiCall) {}
+function switchMap(apiCall) {
+    let latestCallId = 0;
+
+    return async function(...args){
+        const callId = ++latestCallId;
+
+        const result = await apiCall(...args);
+
+        if(callId !== latestCallId){
+            return;
+        }
+
+        return result;
+    }
+}
 
 module.exports = switchMap;

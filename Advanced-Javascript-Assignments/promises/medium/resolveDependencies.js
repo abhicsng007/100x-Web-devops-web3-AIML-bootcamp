@@ -9,7 +9,27 @@
 //
 // Input example:
 // { A: { fn }, B: { fn }, C: { fn, deps: ['A','B'] } }
-async function resolveDependencies(tasks) { }
+async function resolveDependencies(tasks) { 
+    const results = {};
+    const promises = {};
+
+    for(const [name,task] of Object.entries(tasks)){
+
+        const deps = task.deps || [];
+
+        promises[name] = Promise.all(
+            deps.map(dep => promises[dep])
+        )
+        .then(() => task.fn())
+        .then(result => {
+            results[name] = result;
+            return result;
+        })
+    }
+
+    await Promise.all(Object.values(promises));
+    return results;
+}
 
 module.exports = resolveDependencies;
 ``
