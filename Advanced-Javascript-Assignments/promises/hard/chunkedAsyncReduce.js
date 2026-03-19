@@ -13,6 +13,32 @@
 // 3. Return a single Promise that resolves with the final result
 // 4. Use setImmediate or MessageChannel for yielding (not setTimeout)
 //
-async function chunkedAsyncReduce(data, hashFn, chunkSize) { }
+
+function yieldToEventLoop(){
+    return new Promise(resolve => setImmediate(resolve));
+}
+async function chunkedAsyncReduce(data, hashFn, chunkSize) { 
+    let index = 0;
+    let result = undefined;
+
+    while(index < data.length){
+        const end = Math.min(index+chunkSize,data.length);
+
+        for(let i = index; i < end; i++ ){
+            if(result === undefined){
+                result = data[i];
+            }
+            else {
+                result = hashFn(result,data[i]);
+            }
+        }
+        index = end;
+        if(index < data.length){
+                await yieldToEventLoop();
+            }
+    }
+    return result;
+
+}
 
 module.exports = chunkedAsyncReduce;
