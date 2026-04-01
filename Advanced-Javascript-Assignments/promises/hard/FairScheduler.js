@@ -17,11 +17,75 @@
 // 4. Tasks must execute asynchronously
 
 class FairScheduler {
-  constructor(agingFactor = 1) {}
+  constructor(agingFactor = 1) {
+    this.agingFactor = agingFactor;
+    this.queue = [];
+    this.running = false;
+  }
 
-  schedule(task, priority = 0) {}
+  schedule(task, priority = 0) {
+    return new Promise((resolve,reject) => {
+      const job = {
+        task,
+        basePriority: priority,
+        enqueueTime: Date.now(),
+        resolve,
+        reject,
+      }
 
-  async run() {}
+      this.queue.push(job);
+
+      if(!this.running){
+        this.running = true;
+        queueMicrotask(() => this.run());
+      }
+    });
+  }
+
+  _getEffectivePriority(job){
+    const waitTime = (Date.now() - job.enqueueTime)/1000;
+    return job.basePriority + waitTime * this.agingFactor;
+  }
+
+  _pickNextTask(){
+    if(this.queue.length === null) return;
+
+    let bestIndex = 0;
+    let bestPriority = this._getEffectivePriority(this.queue[0]);
+
+    for(let i = 1; i < this.queue.length ; i++){
+      const p = this._getEffectivePriority(this.queue[i]);
+      if(p > bestPriority){
+        bestIndex = i;
+        bestPriority = p;
+      }
+    }
+    return this.queue.splice(bestIndex,1)[0];
+  }
+
+  async run() {
+    while(this.queue.length > 0){
+      const batch = this.queue
+                    .map(job => ({
+                      job,
+                      priority: this._getEffectivePriority(job),
+                    }))
+                    .sort((a,b) => b.priority - a.priority)
+                    .map(item => item.job);
+
+      this.queue = [];
+
+      for(const job of batch){
+        try {
+          const result = await job.task();
+          job.resolve(result);
+        } catch (error) {
+          job.reject(error);
+        }
+      }
+    }
+    this.running = false;
+  }
 }
 
 module.exports = FairScheduler;
