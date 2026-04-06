@@ -15,11 +15,54 @@
 //
 // Tasks must execute one at a time, in the correct order based on aged priority.
 class PriorityMutex {
-  constructor() { }
-  _getAgedPriority(waiter) { }
-  async lock(task, basePriority) { }
-  async _execute(task, resolve, reject) { }
-  _next() { }
+  constructor() { 
+    this.queue = [];
+    this.locked = false;
+  }
+  _getAgedPriority(waiter) { 
+    const now = Date.now();
+    const waitTime = now - waiter.enqueueTime;
+
+    const agingBoost = Math.floor(waitTime/5000) ;
+
+    return waiter.basePriority + agingBoost ;
+  }
+  async lock(task, basePriority = 0) { 
+    return new Promise((resolve,reject) => {
+      const waiter = {
+        task,
+        basePriority,
+        enqueueTime: Date.now(),
+        resolve,
+        reject,
+      };
+      this.queue.push(waiter);
+      this._next();
+    })
+  }
+  async _execute(waiter) {
+    try {
+      const result = await waiter.task();
+      waiter.resolve(result);
+    } catch (error) {
+      waiter.reject(error);
+    }
+    finally{
+      this.locked = false;
+      this._next();
+    }
+   }
+  _next() { 
+    if(this.locked || this.queue.length === 0) return;
+    this.queue.sort((a,b) => {
+      return this._getAgedPriority(b) - this._getAgedPriority(a);
+    });
+
+    const nextWaiter = this.queue.shift();
+    this.locked = true;
+    this._execute(nextWaiter);
+
+  }
 }
 
 module.exports = PriorityMutex;
